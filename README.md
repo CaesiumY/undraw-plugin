@@ -1,29 +1,53 @@
 # undraw
 
+**English** | [한국어](README.ko.md)
+
 Search [undraw.co](https://undraw.co)'s illustration library from your coding
 agent and save an SVG straight into your project, recolored to match your theme.
 
 ```
-> 로그인 페이지에 쓸 일러스트 찾아줘
+> find an illustration for the login page
 
 8 results for "login":
  1. Biometric Login — https://undraw.co/illustration/biometric-login_v832
  2. Secure login    — https://undraw.co/illustration/secure-login_m11a
  ...
 
-> 2번으로
+> the second one
 
 Found primary color #3b82f6 in tailwind.config.ts. Save to public/illustrations/?
 
-> ㅇㅇ
+> yep
 
 Saved public/illustrations/undraw_secure-login_m11a.svg
 Recolored #6c63ff -> #3b82f6
 ```
 
+## Quick start
+
+On Claude Code:
+
+```bash
+/plugin marketplace add CaesiumY/undraw-plugin
+```
+
+Then `/plugin install undraw@undraw-plugin` and ask for what you need in plain
+language — *"find an illustration for the empty cart state"*. The agent
+searches, shows you candidates, reads your theme color out of your stylesheet,
+and writes the file once you confirm. Other hosts are covered under
+[Install](#install).
+
+To see what it does before installing anything, run the bundled CLI from a
+clone. There is nothing to install first:
+
+```bash
+git clone https://github.com/CaesiumY/undraw-plugin
+node undraw-plugin/scripts/undraw.mjs search "login" --limit 5
+```
+
 ## Install
 
-### Claude Code — verified
+### Claude Code
 
 ```bash
 /plugin marketplace add CaesiumY/undraw-plugin
@@ -31,13 +55,13 @@ Recolored #6c63ff -> #3b82f6
 
 Then `/plugin install undraw@undraw-plugin`.
 
-### Codex, Cursor, Copilot, VS Code, Kiro — unverified
+### Codex, Cursor, Copilot, VS Code, Kiro
 
 Ships an [Agent Plugins 1.0](https://agent-plugins.org) manifest
 (`plugin.json`), which these hosts consume. Install through your host's plugin
 mechanism pointing at this repository.
 
-### Gemini CLI — unverified
+### Gemini CLI
 
 ```bash
 gemini extensions install https://github.com/CaesiumY/undraw-plugin
@@ -56,16 +80,63 @@ ln -s "$PWD/undraw-plugin/skills/undraw-illustrations" ~/.agents/skills/undraw-i
 Copying instead of linking also works — the skill detects a missing script and
 falls back to a `curl`-only path.
 
-> **Verification status.** Only Claude Code has been installed and run
-> end-to-end. The other manifests are written to spec but untested; reports
-> welcome via issues.
-
 ## Requirements
 
 Node 18+ for the fast path. Without it the skill still works — it falls back to
 `curl` (or PowerShell on Windows) and does the same work through the agent.
 
 There are no npm dependencies and nothing to build.
+
+## What triggers the skill
+
+You do not invoke anything by name. Asking for artwork is enough:
+
+| You say | What happens |
+|---|---|
+| "find an illustration for the login page" | searches `login` — the subject, not the page purpose |
+| "we need art for the 404 page" | searches `404` / `error` |
+| "빈 상태에 넣을 그림 찾아줘" | Korean requests trigger the same flow |
+| "회원가입 페이지 일러스트" | ditto — the skill's triggers are bilingual |
+| "undraw에서 가져와줘" | names the source directly |
+
+Hero images, empty states, error pages, onboarding art, and placeholder vectors
+all route to the same six steps: search → you pick → propose a directory →
+propose a color found in your stylesheet → save → report. It confirms the path
+and the color before writing, and it never picks the illustration for you unless
+you tell it to.
+
+## What's different
+
+**Your stylesheet's color format is the input format.** Whatever is already
+declared — shadcn's bare HSL channels (`214 92% 58%`), Tailwind v4's
+`oklch(0.514 0.222 16.935)`, `rgb(49 130 246)` — goes straight to `--color`.
+Nothing gets converted by hand.
+
+**CDN URLs are never assembled from slugs.** The catalog is inconsistent about
+its path segment, and a single search returns both spellings side by side:
+
+```
+1. Biometric Login   → https://cdn.undraw.co/illustration/biometric-login_v832.svg
+2. Fingerprint login → https://cdn.undraw.co/illustrations/fingerprint-login_19qv.svg
+```
+
+A URL guessed from a slug 404s on much of the library, so the `media` field from
+`search` is passed through verbatim.
+
+**It refuses to overwrite what it cannot replace.** `--out` is a file only when
+it ends in `.svg`. Pointed at an existing `hero.png`, it exits 1 instead of
+writing SVG text over a raster asset.
+
+**No dependencies, no build, no lock file.** One `.mjs` file on Node 18+, and
+without Node the skill drops to a `curl`-only path that does the same work.
+
+**It fetches one file at a time, by design.** No bulk download, no local mirror,
+and the `artist` and `copyright` attributes that unDraw's own downloader writes
+are preserved in the output. [Licensing](#licensing) explains why that matters.
+
+**Every test pins a real defect.** No runner, no dependencies, no network — each
+assertion guards a bug that actually occurred, so a failure is a regression
+rather than a style disagreement.
 
 ## Using the CLI directly
 
