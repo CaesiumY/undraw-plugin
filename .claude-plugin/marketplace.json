@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "undraw-plugin",
+  "owner": {
+    "name": "ChangSik Yoon",
+    "url": "https://github.com/CaesiumY"
+  },
+  "metadata": {
+    "description": "unDraw illustrations for coding agents",
+    "version": "0.3.0"
+  },
+  "plugins": [
+    {
+      "name": "undraw",
+      "source": "./",
+      "description": "Search undraw.co illustrations and save theme-colored SVGs straight into your project",
+      "version": "0.3.0",
+      "author": {
+        "name": "ChangSik Yoon"
+      },
+      "category": "design",
+      "keywords": ["undraw", "illustration", "svg", "assets", "design", "frontend"]
+    }
+  ]
+}
