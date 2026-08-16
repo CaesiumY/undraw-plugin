@@ -1,0 +1,8 @@
+# Keep LF everywhere, in the repo and in checkouts.
+#
+# scripts/undraw.mjs carries a shebang, and a CRLF after `#!/usr/bin/env node`
+# makes the kernel look for an interpreter named "node\r" — the script becomes
+# unrunnable on Unix hosts the moment it is cloned on Windows with the default
+# autocrlf. This plugin is meant to run under any agent on any platform, so the
+# line endings are not negotiable.
+* text=auto eol=lf
