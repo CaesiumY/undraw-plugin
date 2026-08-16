@@ -38,7 +38,7 @@ and writes the file once you confirm. Other hosts are covered under
 [Install](#install).
 
 To see what it does before installing anything, run the bundled CLI from a
-clone. There is nothing to install first:
+clone. Node 18+ is the only prerequisite — there is nothing to build or fetch:
 
 ```bash
 git clone https://github.com/CaesiumY/undraw-plugin
@@ -83,7 +83,8 @@ falls back to a `curl`-only path.
 ## Requirements
 
 Node 18+ for the fast path. Without it the skill still works — it falls back to
-`curl` (or PowerShell on Windows) and does the same work through the agent.
+`curl` (or PowerShell on Windows) and walks the same flow through the agent,
+with the color conversion done by hand.
 
 There are no npm dependencies and nothing to build.
 
@@ -127,12 +128,15 @@ A URL guessed from a slug 404s on much of the library, so the `media` field from
 it ends in `.svg`. Pointed at an existing `hero.png`, it exits 1 instead of
 writing SVG text over a raster asset.
 
-**No dependencies, no build, no lock file.** One `.mjs` file on Node 18+, and
-without Node the skill drops to a `curl`-only path that does the same work.
+**No dependencies, no build, no lock file.** One `.mjs` file on Node 18+.
+Without Node the skill falls back to a `curl`-only path that walks the same
+flow — though there you convert the color yourself, and the script's response
+and filename checks do not apply.
 
 **It fetches one file at a time, by design.** No bulk download, no local mirror,
-and the `artist` and `copyright` attributes that unDraw's own downloader writes
-are preserved in the output. [Licensing](#licensing) explains why that matters.
+and every saved file carries the same `artist` and `copyright` attributes that
+unDraw's own downloader writes. [Licensing](#licensing) explains why that
+matters.
 
 **Every test pins a real defect.** No runner, no dependencies, no network — each
 assertion guards a bug that actually occurred, so a failure is a regression
@@ -150,8 +154,9 @@ node scripts/undraw.mjs get "https://cdn.undraw.co/illustration/foo_ab12.svg" \
   --out public/illustrations --color "#3b82f6"
 ```
 
-Exit codes: `0` success, `1` usage error, `2` network/HTTP error, `3` no results
-or the response was not an SVG, `4` could not write the output file.
+Exit codes: `0` success, `1` usage error, `2` network/HTTP error, `3` no results,
+the asset 404'd, or the response was not an SVG, `4` could not write the output
+file.
 
 `--color` takes whatever form your stylesheet already uses — you should not have
 to convert anything by hand:
@@ -164,21 +169,24 @@ to convert anything by hand:
 | `rgb(49 130 246)` / `rgb(50% 20% 90%)` | converted to hex |
 | `oklch(0.514 0.222 16.935)` | written through unchanged (needs a CSS Color 4 renderer) |
 
-Alpha channels are dropped (an SVG `fill` takes the color only) and the output
-says so.
+Alpha is dropped when an `hsl()` or `rgb()` value is converted to hex — an SVG
+`fill` takes the color only — and the output says so. Hex and CSS Color 4 values
+are written through as given, alpha included.
 
 `--out` is treated as a file only when it ends in `.svg`; anything else is a
 directory and is created if missing. Pointing it at an existing file that is not
 a `.svg` is refused rather than silently overwritten — writing SVG text over
 `hero.png` is never what was meant.
 
-`--limit` is capped at 50, and a search stops after 20 pages or as soon as a
-page returns nothing new, so the loop cannot run away if the API changes shape.
+`--limit` may not exceed 50 — a larger value is rejected rather than clamped —
+and a search stops after 20 pages or as soon as a page returns nothing new, so
+the loop cannot run away if the API changes shape.
 
 **Pass the `media` URL from `search` verbatim.** CDN paths are not derivable
 from slugs — newer illustrations live under `/illustration/` and older ones
 under `/illustrations/`, so assembling a URL from a slug 404s on much of the
-catalog.
+catalog. `get` accepts `cdn.undraw.co` URLs only; the `preview` URL printed
+beside it is a web page, not the asset, and is rejected.
 
 ## Tests
 
@@ -234,8 +242,8 @@ This tool automates acquisition, which falls within the restricted category. It
 is published on the understanding that users fetch individual illustrations for
 their own projects — the same thing the website's download button does — and not
 to build a mirror or a competing catalog. It does not bulk-download, does not
-redistribute assets, and preserves the `artist` and `copyright` attributes that
-unDraw's own downloader writes into each SVG.
+redistribute assets, and writes into each SVG the same `artist` and `copyright`
+attributes that unDraw's own downloader does.
 
 If you need a use beyond that, contact unDraw for consent. If you want
 illustrations under an unambiguous open license, look at
