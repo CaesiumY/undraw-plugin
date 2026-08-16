@@ -163,9 +163,12 @@ Report the saved path, and pass these through rather than swallowing them:
 - `Kept currentColor …` — repeat the `<img>`/background caveat to the user if
   the file is not going to be inlined.
 - Exit `3` — no such id, or that entry has no variant in the style you named.
-- Exit `1` — the name you passed matched more than one entry; the message lists
-  the ids. Ask the user which, or re-run with an id.
-- Exit `4` — nothing was written (permissions, path collision).
+- Exit `1` — the name you passed matched more than one entry (the message lists
+  the ids; ask the user which, or re-run with an id), or `--out` points at an
+  existing file that is not a `.svg`. Both are refused before anything is
+  fetched.
+- Exit `4` — the write itself failed (permissions, an unwritable path). Nothing
+  was saved.
 
 If the user is working on a component, offer to wire the file in — but only
 after it exists on disk.

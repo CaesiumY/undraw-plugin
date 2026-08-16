@@ -30,7 +30,7 @@ are drawn in `currentColor`, so leaving the color alone is usually the point:
 ```
 > add a hand-drawn underline under the pricing heading
 
-4 results for "underline":
+7 results for "underline":
  1. Underline (id 950) — underline, stress, underscore, emphasis   [bold, thin]
  ...
 
@@ -176,7 +176,7 @@ A URL guessed from a slug 404s on much of the library, so the `media` field from
 entries are both called `Circled Arrow`. Under the site's own naming both are
 `undraw_circled-arrow.svg`, so saving the second into a directory that already
 holds the first destroys it silently. Files are `undraw_<title-slug>_<id>.svg`
-instead.
+instead, with `_thin` appended for the thin variant.
 
 **It refuses to overwrite what it cannot replace.** `--out` is a file only when
 it ends in `.svg`. Pointed at an existing `hero.png`, it exits 1 instead of
@@ -321,7 +321,13 @@ unDraw is generous about *using* assets:
 > "You can use them for noncommercial and commercial purposes. You do not need
 > to ask permission from or provide credit to the creator or unDraw."
 
-But it restricts how they are *acquired*:
+Its own plain-language summary of the limits is blunter, and names this kind of
+tool directly:
+
+> "Just don't try to replicate unDraw, use for machine learning, redistribute in
+> packs the illustrations or create integrations for it."
+
+The license body restricts how assets are *acquired*:
 
 > "This license does not include the right to compile assets, vectors or images
 > from unDraw to replicate a similar or competing service, in any form or
@@ -339,12 +345,13 @@ Additionally, `undraw.co/robots.txt` names several AI user agents — including
 `anthropic-ai` — and disallows `/*.svg$` and `/download/*` for them, under the
 heading `# AI Training Protection - only for artwork`.
 
-This tool automates acquisition, which falls within the restricted category. It
-is published on the understanding that users fetch individual illustrations for
-their own projects — the same thing the website's download button does — and not
-to build a mirror or a competing catalog. It does not bulk-download, does not
-redistribute assets, and writes into each SVG the same `artist` and `copyright`
-attributes that unDraw's own downloader does.
+This tool automates acquisition, and it is an integration — both of which the
+license asks people not to build. It is published on the understanding that
+users fetch individual illustrations for their own projects, the same thing the
+website's download button does, and not to build a mirror or a competing
+catalog. It does not bulk-download, does not redistribute assets, and writes
+into each SVG the same `artist` and `copyright` attributes that unDraw's own
+downloader does.
 
 If you need a use beyond that, contact unDraw for consent. If you want
 illustrations under an unambiguous open license, look at
@@ -353,23 +360,22 @@ illustrations under an unambiguous open license, look at
 
 ### Handcrafts
 
-The Handcrafts license is worded more strictly than the one above, and the extra
-wording lands squarely on this plugin. Its summary says not to
-
-> "replicate unDraw Handcrafts, redistribute the artworks in packs or create
-> integrations for it."
-
-and its restriction clause extends to
+The Handcrafts license carries the same two asks — do not replicate it, do not
+create integrations for it — and extends the restriction one step further than
+the illustration license does. Its restriction clause reads:
 
 > "automated and non-automated ways to link, embed, scrape, search, use for
 > generative AI training purposes or download the assets included on the website
 > and integration without our consent."
 
-Neither "create integrations for it" nor "and integration" appears in the main
-library's license. **By that wording this plugin is an integration**, so for
-Handcrafts it goes a step further than it does for illustrations. That is stated
-here rather than glossed over, because you may reasonably decide it rules the
-feature out for you.
+The phrase **"and integration"** does not appear in the illustration license,
+nor does "generative AI training purposes" inside this clause. So the restricted
+surface here explicitly includes assets reached through an integration, not only
+assets on the website.
+
+**By either license's wording this plugin is an integration.** That is true for
+illustrations too — see above — and is stated in both places rather than glossed
+over, because you may reasonably decide it rules the whole tool out for you.
 
 It is published on the same understanding as the rest of the tool: a user
 fetching one mark for their own project, which is what the site's own Download
@@ -379,7 +385,8 @@ button does. Concretely, the handcrafts path
 - **never caches or writes the catalog to disk**, deliberately — persisting it
   would be the "compile assets" the license forbids, and the reason is pinned as
   rule 3 in `scripts/undraw.mjs` so it does not get "optimized" back in later;
-- preserves the `creator` and `origin` attributes the site's downloader writes;
+- writes the same `creator` and `origin` attributes the site's own downloader
+  writes (the artwork in the page bundle carries neither);
 - is removable on request.
 
 One fact cuts the other way and belongs here too, since the illustrations section

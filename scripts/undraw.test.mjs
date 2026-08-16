@@ -278,6 +278,41 @@ throwsCode('a chunk with no catalog at all', 2, () => parseHandcraftsCatalog('va
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   eq(`20000 unclosed anchors (${ms.toFixed(2)}ms) stays under 200ms`, ms < 200, true);
 }
+{
+  // An unterminated quote used to scan to the end of the CHUNK, not to the end
+  // of the object budget — and since a failed object retries one character
+  // later, a bundle of unclosed quotes cost anchors x chunk-length. This exact
+  // shape took 8m24s at 8 MB before readStringLiteral learned about `limit`.
+  const t0 = process.hrtime.bigint();
+  try {
+    parseHandcraftsCatalog(`${'{_id:1,a:{'.repeat(400)}'${'x'.repeat(2_000_000)}`);
+  } catch {
+    /* drift, expected */
+  }
+  const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+  eq(`400 anchors over an unterminated 2MB string (${ms.toFixed(0)}ms) stays under 2s`, ms < 2000, true);
+}
+// Stopping at the scan cap means `items` is a PREFIX of the catalog. Returning
+// it is the worst outcome available: a short, plausible, wrong list at exit 0.
+throwsCode('hitting the scan cap is drift, not a short list', 2, () =>
+  parseHandcraftsCatalog(`var _=[${Array.from({ length: 2100 }, (_, n) =>
+    hcItem(n + 1, `Filler ${n + 1}`, 'f', hcSvg('M0 0'), hcSvg('M0 0'))).join(',')}]`));
+{
+  // A count floor alone is weak — the live catalog is ~66, so two thirds could
+  // stop parsing and still clear a floor of 20. Entries found but unreadable is
+  // the actual drift signal.
+  const unreadable = Array.from({ length: 40 }, (_, n) =>
+    `{_id:${500 + n},title:"Broken ${n}",keywords:"x",b:f("a,b"),t:''}`);
+  throwsCode('readable-but-decimated catalog is drift', 2, () => hcParse(...unreadable));
+  // …and the same items, readable, are fine.
+  eq('a full catalog is not flagged', hcParse().length, 20);
+}
+// A bare value that opens a string or bracket cannot be scanned by looking for
+// the next comma — the comma inside f("a,b") ends it early and every later key
+// reads as garbage, so the item silently loses its title.
+eq('unscannable bare value drops just that item',
+  hcParse(`{_id:9100,z:f("a,b"),title:"Trap",keywords:"x",b:'${hcSvg('M0 0')}',t:''}`)
+    .some((i) => i.id === 9100), false);
 
 console.log('--- handcrafts: chunk discovery ---');
 eq('script src', findCatalogChunkPaths(

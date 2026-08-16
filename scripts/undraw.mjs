@@ -101,7 +101,7 @@ async function getJson(url) {
  * chunk that vanished between two requests is remote state moving under us (2),
  * and telling that caller to "try a broader term" would be nonsense.
  */
-async function getText(url, { notFoundCode = 3 } = {}) {
+async function getText(url, { notFoundCode = 3, notFoundLabel = 'Asset not found' } = {}) {
   let res;
   try {
     res = await fetch(url, { headers: { 'User-Agent': UA } });
@@ -109,7 +109,7 @@ async function getText(url, { notFoundCode = 3 } = {}) {
     throw new CliError(`Network request failed: ${url}\n  ${cause.message}`, 2);
   }
   if (res.status === 404) {
-    throw new CliError(`Not found (404): ${url}`, notFoundCode);
+    throw new CliError(`${notFoundLabel} (404): ${url}`, notFoundCode);
   }
   if (!res.ok) {
     throw new CliError(`HTTP ${res.status} ${res.statusText} for ${url}`, 2);
@@ -473,11 +473,17 @@ const HANDCRAFT_ORIGIN = 'origin="undraw"';
 
 /** Local bounds, so no bundle — drifted, huge or hostile — can hang the parser. */
 const MAX_CHUNK_CHARS = 8_000_000; // the real chunk is ~350 KB
-const MAX_OBJECT_CHARS = 1_000_000;
+// The largest real entry is ~22 K chars (both SVG variants plus metadata), so
+// this is ~9x headroom. Kept tight on purpose rather than round: the worst case
+// for a hostile bundle is MAX_SCAN_ITEMS x this, so every order of magnitude
+// here is an order of magnitude of wasted work before the drift guard fires.
+const MAX_OBJECT_CHARS = 200_000;
 const MAX_OBJECT_FIELDS = 64;
 const MAX_SCAN_ITEMS = 2000;
 /** The catalog is 66 usable entries today; well under this means the shape moved. */
 const MIN_CATALOG_ITEMS = 20;
+/** …and so does finding entries we cannot read, however many we did read. */
+const MIN_ACCEPT_RATIO = 0.8;
 
 /**
  * Page-chunk paths referenced by /app's HTML.
@@ -497,6 +503,9 @@ function findCatalogChunkPaths(html) {
 
 const SIMPLE_ESCAPES = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', 0: '\0' };
 
+/** Characters that must never appear in a bare (unquoted) object value. */
+const BARE_VALUE_STOP = ['{', '[', '(', '"', "'", '`'];
+
 /**
  * One JS string literal starting at src[i], which must be a quote character.
  *
@@ -504,16 +513,22 @@ const SIMPLE_ESCAPES = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', 0
  * should stay that way: every "the object ended early" bug in a scanner like
  * this one is a string-state bug, so a second copy is a second bug.
  *
+ * `limit` is not optional in practice — pass the caller's budget. Without it an
+ * unterminated quote scans to the end of the chunk and builds a string that
+ * long, and since a failed object retries one character later, a bundle full of
+ * unclosed quotes costs anchors x chunk-length. Measured at 8 minutes for an
+ * 8 MB input before this argument existed.
+ *
  * Escapes it does not recognise (`\u{1F600}`, say) contribute the character
  * itself rather than failing. That is wrong in the letter but right in the
  * consequence: it never truncates the value, which is the only failure mode
  * here that would corrupt an SVG.
  */
-function readStringLiteral(src, i) {
+function readStringLiteral(src, i, limit = src.length) {
   const quote = src[i];
   if (quote !== '"' && quote !== "'" && quote !== '`') return null;
   let value = '';
-  for (let j = i + 1; j < src.length; j += 1) {
+  for (let j = i + 1; j < limit; j += 1) {
     const ch = src[j];
     if (ch === quote) return { value, end: j + 1 };
     if (ch !== '\\') {
@@ -523,7 +538,14 @@ function readStringLiteral(src, i) {
     const escape = src[j + 1];
     if (escape === undefined) break; // trailing backslash — unterminated
     j += 1;
-    if (escape === '\n') continue; // line continuation contributes nothing
+    // Line continuations contribute nothing. CRLF is ONE terminator, so the
+    // \n has to be swallowed too or it lands in the value — and from a title
+    // it reaches a filename.
+    if (escape === '\n' || escape === '\u2028' || escape === '\u2029') continue;
+    if (escape === '\r') {
+      if (src[j + 1] === '\n') j += 1;
+      continue;
+    }
     if (escape === 'u' || escape === 'x') {
       const width = escape === 'u' ? 4 : 2;
       const hex = src.slice(j + 1, j + 1 + width);
@@ -547,7 +569,7 @@ function skipBalanced(src, start, limit) {
   while (i < limit) {
     const ch = src[i];
     if (ch === '"' || ch === "'" || ch === '`') {
-      const read = readStringLiteral(src, i);
+      const read = readStringLiteral(src, i, limit);
       if (!read) return -1;
       i = read.end;
       continue;
@@ -587,7 +609,7 @@ function readObjectLiteral(src, start) {
 
     let key;
     if (src[i] === '"' || src[i] === "'" || src[i] === '`') {
-      const read = readStringLiteral(src, i);
+      const read = readStringLiteral(src, i, limit);
       if (!read) return null;
       key = read.value;
       i = read.end;
@@ -605,7 +627,7 @@ function readObjectLiteral(src, start) {
 
     const ch = src[i];
     if (ch === '"' || ch === "'" || ch === '`') {
-      const read = readStringLiteral(src, i);
+      const read = readStringLiteral(src, i, limit);
       if (!read) return null;
       fields.set(key, { type: 'string', value: read.value });
       i = read.end;
@@ -616,7 +638,15 @@ function readObjectLiteral(src, start) {
       i = end;
     } else {
       const from = i;
-      while (i < limit && src[i] !== ',' && src[i] !== '}') i += 1;
+      // A bare value is expected to be a number or a keyword like !0. Anything
+      // that opens a string or a bracket means this scan would stop in the
+      // wrong place — the comma inside f("a,b") ends the value early and every
+      // key after it reads as garbage, so the item loses its title and is
+      // dropped without a word. Bail instead, and let the caller skip it.
+      while (i < limit && src[i] !== ',' && src[i] !== '}') {
+        if (BARE_VALUE_STOP.includes(src[i])) return null;
+        i += 1;
+      }
       const raw = src.slice(from, i).trim();
       const num = Number(raw);
       fields.set(
@@ -697,15 +727,30 @@ function parseHandcraftsCatalog(chunk, source = HANDCRAFTS_APP) {
     anchor.lastIndex = object.end;
   }
 
-  if (items.length < MIN_CATALOG_ITEMS) {
+  const drift = (why) => {
     throw new CliError(
-      `Could not read the handcrafts catalog: found ${items.length} usable item(s) in ${source} ` +
-        `(expected at least ${MIN_CATALOG_ITEMS}).\n` +
+      `Could not read the handcrafts catalog from ${source}: ${why}.\n` +
         '  handcrafts.undraw.co has no API, so the catalog is read out of the page bundle.\n' +
         '  An upstream redesign breaks this. Please report it:\n' +
         '  https://github.com/CaesiumY/undraw-plugin/issues',
       2,
     );
+  };
+
+  // Hitting the scan cap means the loop stopped early, so `items` is a prefix
+  // of the catalog rather than the catalog. Returning it would be the worst
+  // outcome available: a short, plausible, wrong list, with exit 0.
+  if (scanned >= MAX_SCAN_ITEMS) {
+    drift(`stopped after scanning ${MAX_SCAN_ITEMS} entries without reaching the end`);
+  }
+  if (items.length < MIN_CATALOG_ITEMS) {
+    drift(`found ${items.length} usable item(s), expected at least ${MIN_CATALOG_ITEMS}`);
+  }
+  // A count floor alone is weak: the live catalog is ~66, so two thirds of it
+  // could stop parsing and still clear a floor of 20. What actually signals
+  // drift is entries being FOUND but not READ, so check the ratio too.
+  if (items.length < scanned * MIN_ACCEPT_RATIO) {
+    drift(`only ${items.length} of ${scanned} entries could be read`);
   }
   return items;
 }
@@ -860,24 +905,34 @@ function assertOutFlag(out) {
   }
 }
 
-/** Where the SVG actually lands: `--out` is a file only when it ends in .svg. */
-async function resolveOutPath(out, filename) {
+/**
+ * Refuse a target that already exists and is not a .svg, returning its stat.
+ *
+ * Split out from `resolveOutPath` because it needs no filename, so a caller
+ * that only learns the filename after a fetch can still run this check first.
+ */
+async function assertOutTarget(target) {
   const { stat } = await import('node:fs/promises');
-  const path = await import('node:path');
-
-  const outPath = out ?? filename;
-  const existing = await stat(outPath).catch(() => null);
+  const existing = await stat(target).catch(() => null);
   // The ".svg means file" rule has to hold for paths that already exist too,
   // or the same flag means opposite things depending on what is on disk. An
   // agent told "replace src/assets/hero.png" would otherwise expect a new
   // directory and instead destroy hero.png, with `Saved …` as the only output.
-  if (existing && !existing.isDirectory() && !/\.svg$/i.test(outPath)) {
+  if (existing && !existing.isDirectory() && !/\.svg$/i.test(target)) {
     throw new CliError(
-      `--out "${outPath}" is an existing file that is not a .svg, so writing an SVG there would destroy it.\n` +
+      `--out "${target}" is an existing file that is not a .svg, so writing an SVG there would destroy it.\n` +
         '  Pass a path ending in .svg, or a directory.',
       1,
     );
   }
+  return existing;
+}
+
+/** Where the SVG actually lands: `--out` is a file only when it ends in .svg. */
+async function resolveOutPath(out, filename) {
+  const path = await import('node:path');
+  const outPath = out ?? filename;
+  const existing = await assertOutTarget(outPath);
   // Not on disk yet: only a path already ending in .svg is a file. Testing for
   // "has any extension" instead misreads dotted directory names such as
   // src/assets/v1.0, which would silently become an extensionless file.
@@ -994,7 +1049,7 @@ async function cmdGet(args) {
  * Two round-trips every time, and deliberately not cached to disk — rule 3.
  */
 async function loadHandcraftsCatalog() {
-  const html = await getText(HANDCRAFTS_APP, { notFoundCode: 2 });
+  const html = await getText(HANDCRAFTS_APP, { notFoundCode: 2, notFoundLabel: 'Not found' });
   const [chunkPath] = findCatalogChunkPaths(html);
   if (!chunkPath) {
     throw new CliError(
@@ -1014,7 +1069,7 @@ async function loadHandcraftsCatalog() {
     throw new CliError(`Refusing to read a catalog chunk from ${url.origin}.`, 2);
   }
 
-  const chunk = await getText(url.href, { notFoundCode: 2 });
+  const chunk = await getText(url.href, { notFoundCode: 2, notFoundLabel: 'Not found' });
   if (chunk.length > MAX_CHUNK_CHARS) {
     throw new CliError(
       `${url.href} is ${chunk.length} characters, past the ${MAX_CHUNK_CHARS} cap — refusing to parse it.`,
@@ -1030,7 +1085,9 @@ const styleNames = (item) =>
 
 async function cmdHandcraftsSearch(args) {
   const query = args._[0];
-  if (!query) {
+  // Whitespace-only tokenizes to nothing, so the result is already known —
+  // decide it here rather than after fetching the catalog to answer with [].
+  if (!query || !query.trim()) {
     throw new CliError(
       'handcrafts search requires a query.\n  node undraw.mjs handcrafts search "arrow"',
       1,
@@ -1111,6 +1168,11 @@ async function cmdHandcraftsGet(args) {
   }
   const wanted = requested ?? 'bold';
   const color = args.color ? normalizeColor(args.color) : null;
+  // The filename is not knowable until the catalog is read, but "you pointed
+  // --out at a file I must not destroy" is. Run that half here so this command
+  // rejects it with exit 1 like `get` does, instead of burning two requests and
+  // then masking it behind whichever exit 3 the id happens to produce.
+  if (args.out !== undefined) await assertOutTarget(args.out);
 
   const item = resolveHandcraft(await loadHandcraftsCatalog(), ref);
 

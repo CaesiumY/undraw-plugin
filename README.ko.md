@@ -30,7 +30,7 @@ Recolored #6c63ff -> #3b82f6
 ```
 > 가격표 제목 밑에 손그림 밑줄 넣어줘
 
-4 results for "underline":
+7 results for "underline":
  1. Underline (id 950) — underline, stress, underscore, emphasis   [bold, thin]
  ...
 
@@ -173,7 +173,8 @@ Tailwind v4의
 **핸드크래프트 파일명에는 id가 들어갑니다. 제목이 고유하지 않기 때문입니다.**
 카탈로그에 `Circled Arrow`라는 항목이 두 개 있습니다. 사이트 자체 규칙대로면 둘 다
 `undraw_circled-arrow.svg`라서, 첫 번째가 이미 있는 디렉터리에 두 번째를 저장하면
-조용히 지워집니다. 그래서 `undraw_<제목-슬러그>_<id>.svg`로 저장합니다.
+조용히 지워집니다. 그래서 `undraw_<제목-슬러그>_<id>.svg`로 저장하고, thin 변형에는
+`_thin`을 덧붙입니다.
 
 **대체할 수 없는 파일은 덮어쓰지 않습니다.** `--out`은 `.svg`로 끝날 때만 파일로
 취급합니다. 기존 `hero.png`를 가리키면 래스터 이미지 위에 SVG 텍스트를 쓰는 대신
@@ -320,7 +321,16 @@ unDraw는 에셋을 *사용*하는 데는 관대합니다:
 비상업·상업 용도 모두 허용하며, 제작자나 unDraw의 허락을 받거나 출처를 표기할
 의무는 없다는 뜻입니다.
 
-하지만 *취득* 방식은 제한합니다:
+라이선스가 스스로 붙인 평문 요약은 더 직설적이고, 이런 종류의 도구를 직접
+지목합니다:
+
+> "Just don't try to replicate unDraw, use for machine learning, redistribute in
+> packs the illustrations or create integrations for it."
+
+unDraw를 복제하거나, 머신러닝에 쓰거나, 일러스트를 묶음으로 재배포하거나,
+**이를 위한 integration을 만들지** 말라는 뜻입니다.
+
+그리고 조문은 *취득* 방식을 제한합니다:
 
 > "This license does not include the right to compile assets, vectors or images
 > from unDraw to replicate a similar or competing service, in any form or
@@ -330,9 +340,9 @@ unDraw는 에셋을 *사용*하는 데는 관대합니다:
 
 이 라이선스에는 두 가지가 포함되지 않습니다. 하나는 유사하거나 경쟁하는 서비스를
 만들기 위해 unDraw의 에셋·벡터·이미지를 어떤 형태로든 모으는 것이고, 다른 하나는
-에셋을 묶음으로든 그 밖의 방식으로든 배포하는 것입니다(후자는 경쟁 서비스 목적이
-아니어도 마찬가지입니다). 이 제한은 동의 없이 웹사이트에 있는 에셋을
-링크·임베드·스크랩·검색·다운로드하는 자동/수동 방식 모두에 적용됩니다.
+에셋을 묶음으로든 그 밖의 방식으로든 배포하는 것입니다. 이 제한은 동의 없이
+웹사이트에 있는 에셋을 링크·임베드·스크랩·검색·다운로드하는 자동/수동 방식 모두에
+적용됩니다.
 
 AI 학습 용도는 명시적으로 금지합니다:
 
@@ -347,11 +357,12 @@ unDraw의 에셋·벡터·이미지를 인공지능, 머신러닝 모델, 또는
 지목해 `/*.svg$`와 `/download/*`를 차단하고 있으며, 해당 항목의 제목은
 `# AI Training Protection - only for artwork`입니다.
 
-이 도구는 취득을 자동화하므로 제한 대상 범주에 들어갑니다. 웹사이트의 다운로드
-버튼이 하는 일과 마찬가지로, 사용자가 자기 프로젝트에 쓸 일러스트를 하나씩 받는
-용도로만 쓴다는 전제 위에 공개했으며, 미러나 경쟁 카탈로그를 만들려는 것이
-아닙니다. 대량 다운로드를 하지 않고, 에셋을 재배포하지 않으며, unDraw 공식
-다운로더가 넣는 것과 같은 `artist`·`copyright` 속성을 각 SVG에 써넣습니다.
+이 도구는 취득을 자동화하고, 그 자체로 integration입니다 — 라이선스가 만들지 말라고
+한 두 가지 모두에 해당합니다. 웹사이트의 다운로드 버튼이 하는 일과 마찬가지로,
+사용자가 자기 프로젝트에 쓸 일러스트를 하나씩 받는 용도로만 쓴다는 전제 위에
+공개했으며, 미러나 경쟁 카탈로그를 만들려는 것이 아닙니다. 대량 다운로드를 하지
+않고, 에셋을 재배포하지 않으며, unDraw 공식 다운로더가 넣는 것과 같은
+`artist`·`copyright` 속성을 각 SVG에 써넣습니다.
 
 그 범위를 넘는 사용이 필요하다면 unDraw에 연락해 동의를 받으세요. 명확한 오픈
 라이선스의 일러스트가 필요하다면 [Open Peeps](https://openpeeps.com)(CC0)나
@@ -359,16 +370,8 @@ unDraw의 에셋·벡터·이미지를 인공지능, 머신러닝 모델, 또는
 
 ### 핸드크래프트
 
-Handcrafts 라이선스는 위쪽보다 문구가 더 셉니다. 그리고 그 추가된 문구가 이 플러그인
-정확히 위에 떨어집니다. 요약에서는 이렇게 하지 말라고 합니다:
-
-> "replicate unDraw Handcrafts, redistribute the artworks in packs or create
-> integrations for it."
-
-unDraw Handcrafts를 복제하거나, 아트워크를 묶음으로 재배포하거나, **이를 위한
-integration을 만들지** 말라는 뜻입니다.
-
-제한 조항은 이렇게까지 확장됩니다:
+Handcrafts 라이선스도 같은 두 가지를 요구합니다 — 복제하지 말 것, integration을
+만들지 말 것. 그리고 제한 범위를 일러스트 라이선스보다 한 걸음 더 넓힙니다:
 
 > "automated and non-automated ways to link, embed, scrape, search, use for
 > generative AI training purposes or download the assets included on the website
@@ -377,10 +380,13 @@ integration을 만들지** 말라는 뜻입니다.
 동의 없이 웹사이트 **및 integration**에 포함된 에셋을 링크·임베드·스크랩·검색·생성형
 AI 학습 목적 사용·다운로드하는 자동/수동 방식 모두에 적용된다는 뜻입니다.
 
-"create integrations for it"도 "and integration"도 메인 라이브러리 라이선스에는 없는
-문구입니다. **그 문구대로라면 이 플러그인은 integration이므로**, 핸드크래프트에
-대해서는 일러스트보다 한 발 더 나간 것입니다. 얼버무리지 않고 여기 적어 둡니다.
-이것만으로 이 기능을 쓰지 않겠다고 판단해도 충분히 합리적이기 때문입니다.
+**"and integration"** 이라는 문구는 일러스트 라이선스에 없고, 이 조항 안의
+"generative AI training purposes"도 없습니다. 즉 제한 대상이 웹사이트의 에셋뿐 아니라
+**integration을 통해 닿는 에셋까지** 명시적으로 포함합니다.
+
+**어느 쪽 라이선스의 문구로 보아도 이 플러그인은 integration입니다.** 일러스트도
+마찬가지이며(위 절 참조), 얼버무리지 않고 양쪽 모두에 적어 둡니다. 이것만으로 이
+도구를 쓰지 않겠다고 판단해도 충분히 합리적이기 때문입니다.
 
 이 도구의 나머지 부분과 같은 전제 위에 공개했습니다. 사용자가 자기 프로젝트에 쓸
 표식을 하나 받는 것, 즉 사이트의 다운로드 버튼이 하는 일과 같습니다. 구체적으로
@@ -390,7 +396,8 @@ AI 학습 목적 사용·다운로드하는 자동/수동 방식 모두에 적�
 - **카탈로그를 캐시하거나 디스크에 쓰지 않습니다.** 의도적입니다 — 그걸 저장하는
   것이 라이선스가 금지하는 "compile assets" 그 자체이고, 나중에 "최적화"로 되돌아오지
   않도록 `scripts/undraw.mjs`에 규칙 3으로 못박아 뒀습니다;
-- 사이트 다운로더가 넣는 `creator`·`origin` 속성을 보존합니다;
+- 사이트 자체 다운로더가 넣는 것과 같은 `creator`·`origin` 속성을 써넣습니다
+  (페이지 번들 안의 원본 아트워크에는 두 속성이 없습니다);
 - 요청이 있으면 내립니다.
 
 한 가지 사실은 반대 방향을 가리키고, 그것도 여기 적는 것이 맞습니다. 위 일러스트

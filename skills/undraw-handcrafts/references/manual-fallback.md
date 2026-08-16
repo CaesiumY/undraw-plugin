@@ -30,8 +30,8 @@ grep -o '_id:[0-9]*,title:"[^"]*",keywords:"[^"]*"' chunk.js
 ```
 
 This works because the metadata fields contain no embedded quotes, so a
-non-greedy `[^"]*` cannot run past the end of a value. Roughly 67 lines of a few
-hundred bytes total come out — enough to show the user everything there is.
+non-greedy `[^"]*` cannot run past the end of a value. Roughly 67 lines, about
+7 KB in total — enough to show the user everything there is.
 
 PowerShell:
 
