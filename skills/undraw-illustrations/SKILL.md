@@ -20,6 +20,10 @@ allowed-tools:
 Find an illustration on undraw.co and save it into the project, recolored to the
 project's theme.
 
+> For a small hand-drawn accent instead — an arrow, underline, circle or doodle
+> that points at something rather than filling a space — use the
+> `undraw-handcrafts` skill.
+
 ## Locating the script
 
 The bundled CLI is at `scripts/undraw.mjs` in the plugin root — two levels up

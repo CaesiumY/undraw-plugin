@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "undraw",
-  "version": "0.3.0",
-  "description": "Search undraw.co illustrations and save theme-colored SVGs straight into your project",
+  "version": "0.4.0",
+  "description": "Search unDraw illustrations and hand-drawn accents, and save theme-colored SVGs straight into your project",
   "author": {
     "name": "ChangSik Yoon",
     "url": "https://github.com/CaesiumY"
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/CaesiumY/undraw-plugin",
   "repository": "https://github.com/CaesiumY/undraw-plugin",
   "license": "MIT",
-  "keywords": ["undraw", "illustration", "svg", "assets", "design", "frontend"]
+  "keywords": ["undraw", "handcrafts", "illustration", "icons", "doodle", "svg", "assets", "design", "frontend"]
 }
